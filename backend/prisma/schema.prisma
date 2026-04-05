@@ -1,0 +1,337 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==========================================
+// USERS & AUTH
+// ==========================================
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  name          String?
+  avatar        String?
+  role          UserRole @default(USER)
+  preferences   Json?    // { categories: [], priceRange: {}, brands: [] }
+  searchHistory Json?    // recent queries for personalization
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  affiliateClicks AffiliateClick[]
+  chatSessions    ChatSession[]
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  EDITOR
+}
+
+// ==========================================
+// PRODUCTS
+// ==========================================
+
+model Product {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  name         String
+  brand        String
+  category     String
+  subcategory  String?
+  description  String?
+  imageUrl     String?
+  images       String[]      // array of image URLs
+  aiScore      Float?        // 0-10 score computed by AI
+  aiSummary    String?       // AI-generated product summary
+  pros         String[]
+  cons         String[]
+  tags         String[]
+  trending     Boolean       @default(false)
+  featured     Boolean       @default(false)
+  status       ProductStatus @default(DRAFT)
+  embedding    Float[]       // vector embedding for semantic search
+  metadata     Json?         // flexible extra data
+
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  publishedAt  DateTime?
+
+  specs           ProductSpec[]
+  prices          ProductPrice[]
+  reviews         ProductReview[]
+  affiliateClicks AffiliateClick[]
+  comparisonItems ComparisonItem[]
+  seoPageProducts SeoPageProduct[]
+
+  @@index([slug])
+  @@index([brand])
+  @@index([category])
+  @@index([category, subcategory])
+  @@index([aiScore(sort: Desc)])
+  @@index([trending, featured])
+  @@index([status, publishedAt])
+  @@map("products")
+}
+
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model ProductSpec {
+  id         String  @id @default(cuid())
+  productId  String
+  groupName  String  // e.g., "Display", "Performance", "Camera"
+  label      String  // e.g., "Screen Size", "Chip"
+  value      String  // e.g., "6.9 inches", "A18 Pro"
+  numericVal Float?  // parsed numeric for filtering/sorting
+  unit       String? // e.g., "inches", "mAh", "MP"
+  highlight  Boolean @default(false)
+  sortOrder  Int     @default(0)
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([productId, groupName])
+  @@index([label, numericVal])
+  @@map("product_specs")
+}
+
+model ProductPrice {
+  id            String   @id @default(cuid())
+  productId     String
+  platform      String   // "amazon", "flipkart", "walmart", "apple"
+  price         Float
+  originalPrice Float?
+  currency      String   @default("INR")
+  url           String
+  inStock       Boolean  @default(true)
+  lastChecked   DateTime @default(now())
+  priceHistory  Json?    // [{ date, price }] for charts
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, platform])
+  @@index([productId])
+  @@index([platform, price])
+  @@index([lastChecked])
+  @@map("product_prices")
+}
+
+model ProductReview {
+  id              String   @id @default(cuid())
+  productId       String
+  source          String   // "amazon", "flipkart", "youtube", etc.
+  sourceReviewId  String?
+  author          String?
+  rating          Float?
+  title           String?
+  content         String?
+  sentiment       String?  // "positive", "neutral", "negative"
+  sentimentScore  Float?   // -1 to 1
+  verifiedPurchase Boolean @default(false)
+  helpful         Int      @default(0)
+  publishedAt     DateTime?
+  scrapedAt       DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([productId, source])
+  @@index([sentiment])
+  @@index([rating])
+  @@map("product_reviews")
+}
+
+// ==========================================
+// COMPARISONS
+// ==========================================
+
+model Comparison {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  aiVerdict      String?  // AI-generated comparison verdict
+  verdictDetails Json?    // [{ category, winner, explanation }]
+  winnerId       String?
+  viewCount      Int      @default(0)
+  status         ProductStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items ComparisonItem[]
+
+  @@index([slug])
+  @@index([viewCount(sort: Desc)])
+  @@map("comparisons")
+}
+
+model ComparisonItem {
+  id           String @id @default(cuid())
+  comparisonId String
+  productId    String
+  position     Int    @default(0)
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  product    Product    @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, productId])
+  @@index([comparisonId])
+  @@map("comparison_items")
+}
+
+// ==========================================
+// SEO PAGES (Programmatic)
+// ==========================================
+
+model SeoPage {
+  id             String   @id @default(cuid())
+  slug           String   @unique
+  title          String
+  metaTitle      String?
+  metaDescription String?
+  heading        String
+  content        String   // AI-generated SEO content
+  template       String   // "best-under-price", "vs-comparison", "brand-category"
+  parameters     Json     // { category, maxPrice, brands, etc. }
+  faqContent     Json?    // [{ question, answer }] for AEO
+  schemaMarkup   Json?    // schema.org structured data
+  internalLinks  String[] // slugs of related pages
+
+  status    ProductStatus @default(DRAFT)
+  viewCount Int           @default(0)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+
+  products SeoPageProduct[]
+
+  @@index([slug])
+  @@index([template])
+  @@index([status])
+  @@map("seo_pages")
+}
+
+model SeoPageProduct {
+  id        String @id @default(cuid())
+  seoPageId String
+  productId String
+  rank      Int    @default(0)
+
+  seoPage SeoPage @relation(fields: [seoPageId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([seoPageId, productId])
+  @@index([seoPageId])
+  @@map("seo_page_products")
+}
+
+// ==========================================
+// AFFILIATE TRACKING
+// ==========================================
+
+model AffiliateClick {
+  id         String   @id @default(cuid())
+  productId  String
+  userId     String?
+  platform   String   // "amazon", "flipkart", etc.
+  url        String
+  referrer   String?  // page where click originated
+  userAgent  String?
+  ipHash     String?  // hashed for privacy
+  converted  Boolean  @default(false)
+  revenue    Float?
+  clickedAt  DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId])
+  @@index([platform])
+  @@index([clickedAt])
+  @@index([userId])
+  @@index([converted])
+  @@map("affiliate_clicks")
+}
+
+// ==========================================
+// AI CHAT
+// ==========================================
+
+model ChatSession {
+  id        String   @id @default(cuid())
+  userId    String?
+  title     String?
+  context   Json?    // conversation context for AI
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  messages ChatMessage[]
+  user     User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  sessionId String
+  role      String   // "user", "assistant"
+  content   String
+  metadata  Json?    // { productCards: [], confidence, etc. }
+  createdAt DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@map("chat_messages")
+}
+
+// ==========================================
+// SCRAPER JOBS
+// ==========================================
+
+model ScraperJob {
+  id          String       @id @default(cuid())
+  type        ScraperType
+  target      String       // URL or product identifier
+  platform    String
+  status      JobStatus    @default(PENDING)
+  result      Json?
+  error       String?
+  retries     Int          @default(0)
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime     @default(now())
+
+  @@index([status])
+  @@index([type, platform])
+  @@index([scheduledAt])
+  @@map("scraper_jobs")
+}
+
+enum ScraperType {
+  PRODUCT_DATA
+  PRICE_CHECK
+  REVIEW_SCRAPE
+  IMAGE_SCRAPE
+}
+
+enum JobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
