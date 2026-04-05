@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Param, Query, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import { SeoService } from './seo.service';
 
@@ -30,5 +30,35 @@ export class SeoController {
   @ApiOperation({ summary: 'Get template generation statistics' })
   getTemplateStats() {
     return this.seoService.getTemplateStats();
+  }
+
+  @Post('import-keywords')
+  @ApiOperation({ summary: 'Bulk import keywords from CSV-style array to generate SEO pages' })
+  async importKeywords(
+    @Body() body: { keywords: Array<{ keyword: string; slug: string; category: string; price?: string; use_case?: string; location?: string; template: string }> },
+  ) {
+    let generated = 0;
+    let failed = 0;
+
+    for (const kw of body.keywords) {
+      try {
+        await this.seoService.generatePage({
+          slug: kw.slug,
+          keyword: kw.keyword,
+          template: kw.template,
+          parameters: {
+            category: kw.category,
+            maxPrice: kw.price ? parseInt(kw.price, 10) : undefined,
+            useCase: kw.use_case || undefined,
+            location: kw.location || undefined,
+          },
+        });
+        generated++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return { generated, failed, total: body.keywords.length };
   }
 }

@@ -9,6 +9,7 @@ import { ScraperModule } from './modules/scraper/scraper.module';
 import { SeoModule } from './modules/seo/seo.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { AffiliatesModule } from './modules/affiliates/affiliates.module';
+import { CronModule } from './modules/cron/cron.module';
 import { DatabaseModule } from './database/database.module';
 
 @Module({
@@ -35,6 +36,7 @@ import { DatabaseModule } from './database/database.module';
     SeoModule,
     AdminModule,
     AffiliatesModule,
+    CronModule,
   ],
 })
 export class AppModule {}

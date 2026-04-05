@@ -13,34 +13,42 @@ interface PageTemplate {
 // KEYWORD SYSTEM CONSTANTS
 // ==========================================
 
-const CATEGORIES = [
-  'smartphones', 'laptops', 'tablets', 'headphones',
-  'smartwatches', 'cameras', 'speakers', 'gaming-consoles',
-  'earbuds', 'monitors',
+export const CATEGORIES = [
+  'smartphone', 'laptop', 'earbuds', 'smartwatch',
+  'tablet', 'gaming-phone', 'camera-phone', 'ultrabook',
+  'gaming-laptop', 'budget-phone', 'flagship-phone',
+  'bluetooth-speaker', 'headphones', 'monitor',
+  'keyboard', 'mouse', 'smart-tv', 'fitness-band',
+  'power-bank', 'charger',
 ];
 
-const PRICE_POINTS = [
+export const PRICE_POINTS = [
   5000, 10000, 15000, 20000, 25000, 30000,
-  40000, 50000, 75000, 100000, 150000, 200000,
+  40000, 50000, 60000, 80000, 100000, 150000, 200000,
 ];
 
-const USE_CASES = [
-  'gaming', 'photography', 'video-editing', 'coding',
-  'business', 'students', 'travel', 'music',
-  'fitness', 'content-creation', 'work-from-home',
-  'streaming', 'everyday-use', 'professionals',
-  'beginners', 'kids', 'seniors', 'vlogging',
-  'podcast', 'graphic-design',
+export const USE_CASES = [
+  'gaming', 'students', 'coding', 'video-editing',
+  'photography', 'vlogging', 'travel', 'office-work',
+  'business', 'multitasking', 'battery-life', 'camera',
+  'content-creators', 'streaming', 'online-classes',
+  'zoom-calls', 'gaming-streaming', 'heavy-usage',
+  'lightweight-usage', 'durability', 'outdoor-use',
+  'gym', 'music', 'movies', 'budget-buyers',
+  'premium-users', 'beginners', 'professionals',
+  'kids', 'seniors',
 ];
 
-const BRANDS = [
+export const LOCATIONS = ['india', 'usa', 'uk'];
+
+export const BRANDS = [
   'apple', 'samsung', 'google', 'sony', 'bose', 'oneplus',
   'dell', 'hp', 'lenovo', 'asus', 'acer', 'microsoft',
   'xiaomi', 'realme', 'nothing', 'motorola', 'oppo', 'vivo',
   'jbl', 'sennheiser', 'marshall', 'bang-olufsen',
 ];
 
-const SPEC_FEATURES = [
+export const SPEC_FEATURES = [
   '5g', 'oled-display', '120hz', 'fast-charging',
   '6000mah-battery', '108mp-camera', '256gb-storage',
   '8gb-ram', '12gb-ram', '16gb-ram', 'thunderbolt',
@@ -176,8 +184,8 @@ export class SeoService {
 
   /**
    * TYPE 1: "Best For" Pages (HIGH MONEY PAGES)
-   * Pattern: "Best {category} under {price} for {use-case}"
-   * Scale: 10 categories x 12 prices x 20 use-cases = ~2,400 pages
+   * Pattern: "Best {category} under {price} for {use-case} in {location}"
+   * Scale: 20 categories x 13 prices x 30 use-cases x 3 locations = massive
    */
   private generateBestForPages(): PageTemplate[] {
     const templates: PageTemplate[] = [];
@@ -203,6 +211,16 @@ export class SeoService {
             parameters: { category, maxPrice: price, useCase },
           });
         }
+
+        // With location: "Best {category} under {price} in {location}"
+        for (const location of LOCATIONS) {
+          templates.push({
+            slug: `best-${category}-under-${priceLabel}-in-${location}`,
+            keyword: `best ${category} under ${priceLabel} in ${location}`,
+            template: 'best-under-price-location',
+            parameters: { category, maxPrice: price, location },
+          });
+        }
       }
 
       // Without price: "Best {category} for {use-case}"
@@ -213,6 +231,18 @@ export class SeoService {
           template: 'best-for-usecase',
           parameters: { category, useCase },
         });
+      }
+
+      // Full: "Best {category} for {use-case} in {location}"
+      for (const useCase of USE_CASES) {
+        for (const location of LOCATIONS) {
+          templates.push({
+            slug: `best-${category}-for-${useCase}-in-${location}`,
+            keyword: `best ${category} for ${useCase} in ${location}`,
+            template: 'best-for-usecase-location',
+            parameters: { category, useCase, location },
+          });
+        }
       }
     }
 
