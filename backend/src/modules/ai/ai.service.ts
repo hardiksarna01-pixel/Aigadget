@@ -272,7 +272,7 @@ Return JSON:
   }
 
   // ==========================================
-  // PROMPT CHAIN 5: SEO Content Generation
+  // PROMPT CHAIN 5: SEO Content Generation (AEO-Optimized)
   // ==========================================
   async generateSeoContent(params: {
     template: string;
@@ -289,35 +289,56 @@ Return JSON:
   }> {
     const response = await this.claude.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 3000,
-      system: `You are an expert SEO content writer for tech products. Write content that:
-1. Ranks well on Google
-2. Is optimized for AI answer engines (Perplexity, ChatGPT search)
-3. Includes structured data-friendly formatting
-4. Is genuinely helpful to readers
-5. Naturally incorporates affiliate-worthy product mentions
+      max_tokens: 4000,
+      system: `You are an elite SEO + AEO content architect for a premium tech review platform. Your content must:
 
-Write in a premium, authoritative tone. Respond with valid JSON only.`,
+1. RANK ON GOOGLE: Structure > intent match > content quality
+2. APPEAR IN AI ANSWERS: Short definitive answers, bullet lists, tables that LLMs (ChatGPT, Perplexity, Gemini) can extract
+3. CONVERT READERS: Every product mention is a monetization opportunity
+4. BUILD TRUST: Include "Reality Check" and "Who Should NOT Buy This" sections
+
+CONTENT STRUCTURE (mandatory):
+- H1: Matches search intent exactly
+- Intro: 2-3 sentence hook with definitive answer upfront (AEO bait)
+- AI Verdict: 3-line bold summary (this is what AI engines extract)
+- Top Picks: Product cards with reasoning
+- Reality Check: Honest assessment most sites won't tell you
+- Who Should NOT Buy: Counter-recommendations (builds massive trust)
+- Comparison Table: Structured data in HTML table format
+- Pros & Cons: Bullet format per product
+- Best Deal Right Now: Urgency + affiliate CTA
+- FAQs: 5-8 questions optimized for voice search + AI extraction
+
+STYLE:
+- Premium, authoritative, concise
+- No fluff or filler sentences
+- Data-driven claims with specific numbers
+- Write like Apple's marketing team meets Consumer Reports
+
+Respond with valid JSON only.`,
       messages: [
         {
           role: 'user',
-          content: `Generate SEO content for:
+          content: `Generate high-converting SEO + AEO content for:
+
 Template: ${params.template}
 Target keyword: "${params.keyword}"
 Category: ${params.category || 'general'}
+Current year: ${new Date().getFullYear()}
 
-Top products to feature:
-${params.products.map((p) => `- ${p.name} (${p.brand}) - Score: ${p.aiScore}/10 - From ₹${p.prices?.[0]?.price}`).join('\n')}
+Products to feature (ranked by AI score):
+${params.products.map((p) => `- ${p.name} (${p.brand}) | AI Score: ${p.aiScore}/10 | From ₹${p.prices?.[0]?.price} | Key specs: ${p.specs?.map((s: any) => `${s.label}: ${s.value}`).join(', ')}`).join('\n')}
 
 Return JSON:
 {
-  "title": "page title (60 chars max)",
-  "metaTitle": "SEO meta title (60 chars)",
-  "metaDescription": "meta description (155 chars)",
-  "heading": "H1 heading",
-  "content": "full HTML content with h2, h3, p, ul, ol tags (2000+ words)",
+  "title": "page title (60 chars max, include year)",
+  "metaTitle": "SEO meta title with keyword at start (60 chars)",
+  "metaDescription": "compelling meta desc with CTA (155 chars)",
+  "heading": "H1 heading matching exact search intent",
+  "content": "full HTML content (2000+ words) following the mandatory structure above. Use h2, h3, p, ul, ol, table, strong tags. Include: AI Verdict section, Reality Check section, Who Should NOT Buy section, comparison table, pros/cons, deals section",
   "faqContent": [
-    { "question": "FAQ question", "answer": "FAQ answer" }
+    { "question": "natural voice-search style question", "answer": "2-3 sentence definitive answer that AI engines can extract directly" },
+    ... (5-8 FAQs covering: best pick, budget pick, avoid pick, vs competitor, worth it?, when to buy)
   ]
 }`,
         },

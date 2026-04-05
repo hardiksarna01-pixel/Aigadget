@@ -16,6 +16,7 @@ import { PrismaService } from '@/database/prisma.service';
  * 4. Synthesize reviews
  * 5. Generate vector embeddings for semantic search
  * 6. Auto-publish if score threshold met
+ * 7. Auto-trigger SEO page generation for related categories
  */
 @Injectable()
 export class ScraperOrchestrator {
