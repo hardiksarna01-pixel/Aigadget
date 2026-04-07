@@ -10,6 +10,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { getProduct, type ApiProduct } from "@/lib/api";
+import { trendingProducts } from "@/data/mock";
 import { AIScore } from "@/components/ui/ai-score";
 import { PriceTag } from "@/components/ui/price-tag";
 import { Badge } from "@/components/ui/badge";
@@ -19,13 +20,29 @@ import { JsonLd } from "@/components/common/json-ld";
 // ISR: Revalidate every 24 hours
 export const revalidate = 86400;
 
+// Pre-build all product pages from mock data
+export async function generateStaticParams() {
+  return trendingProducts.map((p) => ({ slug: p.slug }));
+}
+
+function getProductData(slug: string) {
+  // Fallback to mock data when API is unavailable
+  const mock = trendingProducts.find((p) => p.slug === slug);
+  if (!mock) return null;
+  return {
+    ...mock,
+    imageUrl: mock.imageUrl || null,
+    specs: mock.specs.map((s) => ({ ...s, groupName: s.group })),
+  };
+}
+
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product = (await getProduct(slug)) || getProductData(slug);
 
   if (!product) {
     return { title: "Product Not Found | AIGadget" };
@@ -62,7 +79,7 @@ const platformNames: Record<string, string> = {
 
 export default async function ProductPage({ params }: PageProps) {
   const { slug } = await params;
-  const product = await getProduct(slug);
+  const product = (await getProduct(slug)) || getProductData(slug);
 
   if (!product) {
     notFound();
@@ -73,9 +90,9 @@ export default async function ProductPage({ params }: PageProps) {
     .sort((a, b) => a.price - b.price)[0];
 
   // Group specs
-  const specGroups = new Map<string, typeof product.specs>();
+  const specGroups = new Map<string, Array<{ label: string; value: string; highlight?: boolean }>>();
   for (const spec of product.specs) {
-    const group = spec.groupName || "General";
+    const group = (spec as any).groupName || (spec as any).group || "General";
     if (!specGroups.has(group)) specGroups.set(group, []);
     specGroups.get(group)!.push(spec);
   }
