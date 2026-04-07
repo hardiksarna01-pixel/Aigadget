@@ -6,7 +6,8 @@ interface ComparisonProduct {
   brand: string;
   aiScore?: number | null;
   specs: Array<{
-    groupName: string;
+    groupName?: string;
+    group?: string;
     label: string;
     value: string;
     highlight?: boolean;
@@ -31,7 +32,7 @@ export function ComparisonTable({ products }: ComparisonTableProps) {
   for (const p of products) {
     for (const s of p.specs) {
       if (!specLabels.has(s.label)) {
-        specLabels.set(s.label, s.groupName);
+        specLabels.set(s.label, s.groupName || s.group || "General");
       }
     }
   }
