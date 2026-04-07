@@ -18,6 +18,8 @@ export interface Product {
   tags: string[];
   trending: boolean;
   featured: boolean;
+  badge?: "trending" | "best-deal" | "ai-pick";
+  buyCount?: number;
   createdAt: string;
   updatedAt: string;
 }

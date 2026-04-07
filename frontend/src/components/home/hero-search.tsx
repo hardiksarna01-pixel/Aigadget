@@ -84,7 +84,7 @@ export function HeroSearch() {
                 onChange={(e) => setQuery(e.target.value)}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setTimeout(() => setIsFocused(false), 200)}
-                placeholder="Ask anything... &quot;Best phone under 30k for gaming&quot;"
+                placeholder="Best phone under 20k for gaming..."
                 className="flex-1 bg-transparent text-base outline-none placeholder:text-muted-foreground/60"
               />
               <div className="flex items-center gap-1">

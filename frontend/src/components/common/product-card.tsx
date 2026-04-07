@@ -2,12 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ExternalLink, ShoppingCart } from "lucide-react";
+import { ExternalLink, ShoppingCart, Flame, Zap, Sparkles, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AIScore } from "@/components/ui/ai-score";
 import { PriceTag } from "@/components/ui/price-tag";
-import { Button } from "@/components/ui/button";
 
 interface ProductCardProps {
   product: {
@@ -19,6 +18,10 @@ interface ProductCardProps {
     aiScore?: number | null;
     aiSummary?: string | null;
     pros?: string[];
+    trending?: boolean;
+    featured?: boolean;
+    badge?: "trending" | "best-deal" | "ai-pick";
+    buyCount?: number;
     prices: Array<{
       platform: string;
       price: number;
@@ -46,6 +49,36 @@ const platformNames: Record<string, string> = {
   apple: "Apple Store",
 };
 
+function ConversionBadge({ badge, product }: { badge?: string; product: ProductCardProps["product"] }) {
+  // Auto-detect badge if not explicitly set
+  const effectiveBadge = badge
+    || (product.trending ? "trending" : undefined)
+    || (product.featured && (product.aiScore ?? 0) >= 9.0 ? "ai-pick" : undefined);
+
+  // Check for deal badge based on discount
+  const hasDiscount = product.prices.some(
+    (p) => p.originalPrice && ((p.originalPrice - p.price) / p.originalPrice) > 0.1
+  );
+  const finalBadge = effectiveBadge || (hasDiscount ? "best-deal" : undefined);
+
+  if (!finalBadge) return null;
+
+  const config = {
+    "trending": { icon: Flame, label: "Trending", className: "bg-orange-500/90 text-white" },
+    "best-deal": { icon: Zap, label: "Best Deal", className: "bg-emerald-500/90 text-white" },
+    "ai-pick": { icon: Sparkles, label: "AI Pick", className: "bg-purple-500/90 text-white" },
+  }[finalBadge];
+
+  if (!config) return null;
+
+  return (
+    <div className={`absolute left-3 top-3 z-10 flex items-center gap-1 rounded-lg px-2 py-1 text-[10px] font-bold shadow-md ${config.className}`}>
+      <config.icon className="h-3 w-3" />
+      {config.label}
+    </div>
+  );
+}
+
 export function ProductCard({ product, rank, showAffiliate = true }: ProductCardProps) {
   const lowestPrice = product.prices
     .filter((p) => p.inStock)
@@ -59,8 +92,11 @@ export function ProductCard({ product, rank, showAffiliate = true }: ProductCard
       viewport={{ once: true }}
     >
       <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300">
+        {/* Conversion Badge (Trending / Best Deal / AI Pick) */}
+        <ConversionBadge badge={product.badge} product={product} />
+
         {/* Rank badge */}
-        {rank !== undefined && (
+        {rank !== undefined && !product.badge && (
           <div className="absolute left-3 top-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow">
             #{rank}
           </div>
@@ -101,9 +137,6 @@ export function ProductCard({ product, rank, showAffiliate = true }: ProductCard
                 </h3>
               </Link>
             </div>
-            <Badge variant="secondary" className="shrink-0 text-[10px]">
-              {product.category}
-            </Badge>
           </div>
 
           {product.aiSummary && (
@@ -121,6 +154,22 @@ export function ProductCard({ product, rank, showAffiliate = true }: ProductCard
                 currency={lowestPrice.currency}
                 size="sm"
               />
+            )}
+          </div>
+
+          {/* Trust Signals */}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {product.buyCount && product.buyCount > 0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-orange-600 dark:text-orange-400">
+                <TrendingUp className="h-3 w-3" />
+                {product.buyCount}+ bought this week
+              </span>
+            )}
+            {(product.aiScore ?? 0) >= 9.0 && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-purple-600 dark:text-purple-400">
+                <Sparkles className="h-3 w-3" />
+                AI Recommended
+              </span>
             )}
           </div>
 
